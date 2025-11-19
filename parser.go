@@ -3,8 +3,6 @@ package fullname_parser
 import (
 	"regexp"
 	"strings"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type ParsedName struct {
@@ -71,7 +69,9 @@ var (
 )
 
 func ParseFullname(fullname string) (parsedName ParsedName) {
-	log.Debug("Start parsing fullname: ", fullname)
+	if fullname == "" {
+		return
+	}
 
 	//nicknames: remove and store
 	nicknames := findNicknames(&fullname)
@@ -129,8 +129,7 @@ func ParseFullname(fullname string) (parsedName ParsedName) {
 		parsedName.Middle = findMiddlename()
 	}
 
-	log.Debugf("Parsing complete: %+v", parsedName)
-	return
+	return parsedName
 }
 
 func findNicknames(fullname *string) []string {
@@ -143,30 +142,23 @@ func findNicknames(fullname *string) []string {
 		partsFound = append(partsFound, v[1])
 	}
 
-	log.Debugf("Founded %v nickname(s): %v", len(partsFound), partsFound)
-	log.Debug("Clearing")
-
 	for _, v := range matches {
 		tempString = strings.Replace(tempString, v[0], "", -1)
 	}
 	*fullname = tempString
 
-	log.Debug("Cleared fullname: ", *fullname)
 	return partsFound
 }
 
 func findSuffixes() []string {
-	log.Debug("Searching suffixes")
 	return findParts(suffixList)
 }
 
 func findTitles() []string {
-	log.Debug("Searching titles")
 	return findParts(titleList)
 }
 
 func splitName(fullname string) {
-	log.Debug("Spliting fullname")
 	re := regexp.MustCompile(`[\s\p{Zs}]{2,}`)
 	fullname = re.ReplaceAllLiteralString(fullname, " ")
 	nameParts = strings.Split(strings.TrimSpace(fullname), " ")
@@ -178,9 +170,6 @@ func splitName(fullname string) {
 			nameCommas[i] = true
 		}
 	}
-
-	log.Debug("Splitted parts: ", nameParts)
-	log.Debug("Splitted commas: ", nameCommas)
 }
 
 func findParts(list []string) []string {
@@ -201,9 +190,6 @@ func findParts(list []string) []string {
 		}
 	}
 
-	log.Debugf("Founded %v parts: %v", len(partsFound), partsFound)
-	log.Debug("Clearing")
-
 	for _, partFound := range partsFound {
 		foundIndex := -1
 		for i, namePart := range nameParts {
@@ -222,15 +208,10 @@ func findParts(list []string) []string {
 		}
 	}
 
-	log.Debug("Cleared parts: ", nameParts)
-	log.Debug("Cleared commas: ", nameCommas)
-
 	return partsFound
 }
 
 func joinPrefixes() {
-	log.Debug("Join prefixes")
-
 	if len(nameParts) > 1 {
 		for i := len(nameParts) - 2; i >= 0; i-- {
 			for _, pref := range prefixList {
@@ -242,14 +223,9 @@ func joinPrefixes() {
 			}
 		}
 	}
-
-	log.Debug("Prefixes joined: ", strings.Join(nameParts, ","))
-	log.Debug("Cleared commas: ", nameCommas)
 }
 
 func joinConjunctions() {
-	log.Debug("Join conjunctions")
-
 	if len(nameParts) > 2 {
 		for i := len(nameParts) - 3; i >= 0; i-- {
 			for _, conj := range conjunctionList {
@@ -262,17 +238,17 @@ func joinConjunctions() {
 			}
 		}
 	}
-	log.Debug("Conjunctions joined: ", strings.Join(nameParts, ","))
-	log.Debug("Cleared commas: ", nameCommas)
 }
 
 func findExtraSuffixes() (extraSuffixes []string) {
 	commasCount := 0
+
 	for _, v := range nameCommas {
 		if v {
 			commasCount++
 		}
 	}
+
 	if commasCount > 1 {
 		for i := len(nameParts) - 1; i >= 2; i-- {
 			if nameCommas[i] {
@@ -283,16 +259,12 @@ func findExtraSuffixes() (extraSuffixes []string) {
 		}
 	}
 
-	log.Debugf("Founded %v extra suffixes: %v", len(extraSuffixes), extraSuffixes)
-	log.Debug("Cleared commas: ", nameCommas)
-
-	return
+	return extraSuffixes
 }
 
 func findLastname() (lastname string) {
-	log.Debug("Searching lastname")
-
 	commaIndex := -1
+
 	for i, v := range nameCommas {
 		if v {
 			commaIndex = i
@@ -306,27 +278,17 @@ func findLastname() (lastname string) {
 	lastname = nameParts[commaIndex]
 	nameParts = append(nameParts[:commaIndex], nameParts[commaIndex+1:]...)
 	nameCommas = nameCommas[:0]
-
-	log.Debug("Founded lastname: ", lastname)
-	log.Debug("Cleared parts: ", nameParts)
-	log.Debug("Cleared commas: ", nameCommas)
-	return
+	return lastname
 }
 
 func findFirstname() (firstname string) {
-	log.Debug("Searching firstname")
 	firstname = nameParts[0]
 	nameParts = nameParts[1:]
-	log.Debug("Founded firstname: ", firstname)
-	log.Debug("Cleared parts: ", nameParts)
 	return
 }
 
 func findMiddlename() (middlename string) {
-	log.Debug("Searching middlename")
 	middlename = strings.Join(nameParts, " ")
 	nameParts = nameParts[:0]
-	log.Debug("Founded middlename(s): ", middlename)
-	log.Debug("Cleared parts: ", nameParts)
 	return
 }
