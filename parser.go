@@ -3,6 +3,7 @@ package fullname_parser
 import (
 	"regexp"
 	"strings"
+	"sync"
 )
 
 type ParsedName struct {
@@ -64,6 +65,7 @@ var (
 )
 
 var (
+	mu         sync.Mutex
 	nameParts  []string
 	nameCommas []bool
 )
@@ -72,6 +74,9 @@ func ParseFullname(fullname string) (parsedName ParsedName) {
 	if fullname == "" {
 		return
 	}
+
+	mu.Lock()
+	defer mu.Unlock()
 
 	//nicknames: remove and store
 	nicknames := findNicknames(&fullname)
@@ -212,7 +217,7 @@ func findParts(list []string) []string {
 }
 
 func joinPrefixes() {
-	if len(nameParts) > 1 {
+	if num := len(nameParts); num > 1 {
 		for i := len(nameParts) - 2; i >= 0; i-- {
 			for _, pref := range prefixList {
 				if pref == nameParts[i] {
